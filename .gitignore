@@ -9,6 +9,15 @@ __pycache__/
 # Checkpoints and saves
 *ckpt*
 events.out.tfevents*
+*.h5
+*.gz
+config/
+*.png
+*.svg
+docs/
+test/
+examples/
+demos/
 
 # Distribution / packaging
 .Python
