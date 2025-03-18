@@ -357,7 +357,7 @@ class CentroidDistScore(tf.keras.losses.Loss):
 
         mask_expanded = tf.expand_dims(mask, axis=-1)
         displacement = tf.where(mask_expanded, 0.0, y_pred - tf.cast(y_true, tf.float32))
-        distance = tf.norm(displacement, axis=-1)
+        distance = tf.norm(displacement + EPS, axis=-1) #### For some reason, only having one Z layer was messing this up w/o the episilon
         
         return (tf.reduce_sum(distance, axis=-1) + self.smooth_nr) / (tf.reduce_sum(1.0-tf.cast(mask, dtype=tf.float32), axis=-1) + self.smooth_dr)
 
@@ -576,7 +576,8 @@ def compute_centroid_distance(
     """
     centroid_1 = compute_centroid(mask=y_pred, grid=grid)  # (batch, 3)
     centroid_2 = compute_centroid(mask=y_true, grid=grid)  # (batch, 3)
-    return tf.sqrt(tf.reduce_sum((centroid_1 - centroid_2) ** 2, axis=1))
+    # tf.print(centroid_1 - centroid_2)
+    return tf.sqrt(tf.reduce_sum((centroid_1 - centroid_2) ** 2, axis=1)) #### Maybe but prob not. Although weird that no zero
 
 
 def foreground_proportion(y: tf.Tensor) -> tf.Tensor:

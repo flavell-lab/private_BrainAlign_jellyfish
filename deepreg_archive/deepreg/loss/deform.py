@@ -17,7 +17,8 @@ def gradient_dx(fx: tf.Tensor) -> tf.Tensor:
     :param fx: shape = (batch, m_dim1, m_dim2, m_dim3)
     :return: shape = (batch, m_dim1-2, m_dim2-2, m_dim3-2)
     """
-    return (fx[:, 2:, 1:-1, 1:-1] - fx[:, :-2, 1:-1, 1:-1]) / 2
+    return (fx[:, 2:, 1:-1, :] - fx[:, :-2, 1:-1, :]) / 2
+    # return (fx[:, 2:, 1:-1, 1:-1] - fx[:, :-2, 1:-1, 1:-1]) / 2
 
 
 def gradient_dy(fy: tf.Tensor) -> tf.Tensor:
@@ -30,7 +31,8 @@ def gradient_dy(fy: tf.Tensor) -> tf.Tensor:
     :param fy: shape = (batch, m_dim1, m_dim2, m_dim3)
     :return: shape = (batch, m_dim1-2, m_dim2-2, m_dim3-2)
     """
-    return (fy[:, 1:-1, 2:, 1:-1] - fy[:, 1:-1, :-2, 1:-1]) / 2
+    return (fy[:, 1:-1, 2:, :] - fy[:, 1:-1, :-2, :]) / 2
+    # return (fy[:, 1:-1, 2:, 1:-1] - fy[:, 1:-1, :-2, 1:-1]) / 2
 
 
 def gradient_dz(fz: tf.Tensor) -> tf.Tensor:
@@ -43,7 +45,24 @@ def gradient_dz(fz: tf.Tensor) -> tf.Tensor:
     :param fz: shape = (batch, m_dim1, m_dim2, m_dim3)
     :return: shape = (batch, m_dim1-2, m_dim2-2, m_dim3-2)
     """
-    return (fz[:, 1:-1, 1:-1, 2:] - fz[:, 1:-1, 1:-1, :-2]) / 2
+    # return (fz[:, 1:-1, 1:-1, 2:] - fz[:, 1:-1, 1:-1, :-2]) / 2
+    out = tf.zeros_like(fz[:, 1:-1, 1:-1, :])
+
+
+def _fake_gradient_dz(fz: tf.Tensor) -> tf.Tensor:
+    """
+    Calculate gradients on z-axis of a 3D tensor using central finite difference.
+
+    It moves the tensor along axis 3 to calculate the approximate gradient, the z axis,
+    dz[i] = (z[i+1] - z[i-1]) / 2.
+
+    :param fz: shape = (batch, m_dim1, m_dim2, m_dim3)
+    :return: shape = (batch, m_dim1-2, m_dim2-2, m_dim3-2)
+    """
+    # tf.print(fz[:, 1:-1, 1:-1, 2:])
+    # tf.print(fz[:, 1:-1, 1:-1, :-2])
+    # return (fz[:, 1:-1, 1:-1, 2:] - fz[:, 1:-1, 1:-1, :-2]) / 2
+    return tf.stack([tf.zeros_like(fz[:, 1:-1, 1:-1, :, 0]), tf.zeros_like(fz[:, 1:-1, 1:-1, :, 0]), tf.ones_like(fz[:, 1:-1, 1:-1, :, 0])], axis=4)
 
 
 def gradient_dxyz(fxyz: tf.Tensor, fn: Callable) -> tf.Tensor:
@@ -354,7 +373,8 @@ class HybridNorm(tf.keras.layers.Layer):
         if self.nonrigid_weight > 0:
             dfdx_nonrigid = gradient_dxyz(ddf - self.ddf_ref, gradient_dx)
             dfdy_nonrigid = gradient_dxyz(ddf - self.ddf_ref, gradient_dy)
-            dfdz_nonrigid = gradient_dxyz(ddf - self.ddf_ref, gradient_dz)
+            # dfdz_nonrigid = gradient_dxyz(ddf - self.ddf_ref, gradient_dz)
+            dfdz_nonrigid = _fake_gradient_dz(ddf)
 
             if self.l1:
                 nonrigid_norms = tf.abs(
@@ -372,7 +392,9 @@ class HybridNorm(tf.keras.layers.Layer):
             # compute the gradient norm
             dfdx = gradient_dxyz(ddf, gradient_dx)
             dfdy = gradient_dxyz(ddf, gradient_dy)
-            dfdz = gradient_dxyz(ddf, gradient_dz)
+            # dfdz = gradient_dxyz(ddf, gradient_dz)
+            dfdz = tf.zeros_like(dfdy)
+
             if self.l1:
                 gradient_norms = tf.abs(dfdx) + tf.abs(dfdy) + tf.abs(dfdz)
             else:

@@ -126,19 +126,31 @@ def separable_filter(tensor: tf.Tensor, kernel: tf.Tensor) -> tf.Tensor:
     strides = [1, 1, 1, 1, 1]
     kernel = tf.cast(kernel, dtype=tensor.dtype)
 
+    # tensor = tf.nn.conv3d(
+    #     tf.nn.conv3d(
+    #         tf.nn.conv3d(
+    #             tensor,
+    #             filters=tf.reshape(kernel, [-1, 1, 1, 1, 1]),
+    #             strides=strides,
+    #             padding="SAME",
+    #         ),
+    #         filters=tf.reshape(kernel, [1, -1, 1, 1, 1]),
+    #         strides=strides,
+    #         padding="SAME",
+    #     ),
+    #     filters=tf.reshape(kernel, [1, 1, -1, 1, 1]),
+    #     strides=strides,
+    #     padding="SAME",
+    # )
+
     tensor = tf.nn.conv3d(
         tf.nn.conv3d(
-            tf.nn.conv3d(
-                tensor,
-                filters=tf.reshape(kernel, [-1, 1, 1, 1, 1]),
-                strides=strides,
-                padding="SAME",
-            ),
-            filters=tf.reshape(kernel, [1, -1, 1, 1, 1]),
+            tensor,
+            filters=tf.reshape(kernel, [-1, 1, 1, 1, 1]),
             strides=strides,
             padding="SAME",
         ),
-        filters=tf.reshape(kernel, [1, 1, -1, 1, 1]),
+        filters=tf.reshape(kernel, [1, -1, 1, 1, 1]),
         strides=strides,
         padding="SAME",
     )
