@@ -571,7 +571,8 @@ class DDFModel(RegistrationModel):
         # ddf loss and metrics
         ddf = self._outputs["ddf"]
         ### TODO: call build hybrid loss
-        self._build_loss(name="regularization", inputs_dict=dict(inputs=ddf))
+        # self._build_loss(name="regularization", inputs_dict=dict(inputs=ddf))
+        self._build_loss(name="regularization", inputs_dict=dict(inputs=ddf, gradient_weight_map = self._inputs["moving_image"]))
         self.log_tensor_stats(tensor=ddf, name="ddf")
 
     def postprocess(

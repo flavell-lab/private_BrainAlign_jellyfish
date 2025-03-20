@@ -339,6 +339,10 @@ class HybridNorm(tf.keras.layers.Layer):
         self.l1 = l1
         self.nonrigid_weight = hybrid_weight["nonrigid"]
         self.gradientNorm_weight = hybrid_weight["gradient"]
+        if "gradient_weight_map" in hybrid_weight:
+            self.apply_gradientNorm_weight_map = hybrid_weight["gradient_weight_map"]
+        else:
+            self.apply_gradientNorm_weight_map = False
         self.differenceNorm_weight = hybrid_weight["diff"]
         self.axisdiffNorm_weight = hybrid_weight["axisdiff"]
         self.img_size = img_size
@@ -347,7 +351,7 @@ class HybridNorm(tf.keras.layers.Layer):
 
         assert img_size != (0, 0, 0), "img_size must be set to a value other than (0, 0, 0)"
 
-    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, gradient_weight_map: tf.Tensor = tf.zeros(1), **kwargs) -> tf.Tensor:
         assert len(inputs.shape) == 5
         ddf = inputs
         # compute the nonrigid penalty
@@ -373,6 +377,12 @@ class HybridNorm(tf.keras.layers.Layer):
             dfdx = gradient_dxyz(ddf, gradient_dx)
             dfdy = gradient_dxyz(ddf, gradient_dy)
             dfdz = gradient_dxyz(ddf, gradient_dz)
+
+            if self.apply_gradientNorm_weight_map:
+                tf.assert_equal(tf.reduce_all(gradient_weight_map == 0), False, message="Map must not all be zeros")
+                dfdx = tf.multiply(dfdx, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
+                dfdy = tf.multiply(dfdy, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
+
             if self.l1:
                 gradient_norms = tf.abs(dfdx) + tf.abs(dfdy) + tf.abs(dfdz)
             else:
