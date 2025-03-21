@@ -357,7 +357,7 @@ class CentroidDistScore(tf.keras.losses.Loss):
 
         mask_expanded = tf.expand_dims(mask, axis=-1)
         displacement = tf.where(mask_expanded, 0.0, y_pred - tf.cast(y_true, tf.float32))
-        distance = tf.norm(displacement, axis=-1)
+        distance = tf.norm(displacement + EPS, axis=-1)
         
         return (tf.reduce_sum(distance, axis=-1) + self.smooth_nr) / (tf.reduce_sum(1.0-tf.cast(mask, dtype=tf.float32), axis=-1) + self.smooth_dr)
 
