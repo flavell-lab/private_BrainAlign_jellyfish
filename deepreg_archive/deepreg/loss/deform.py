@@ -376,12 +376,14 @@ class HybridNorm(tf.keras.layers.Layer):
             # compute the gradient norm
             dfdx = gradient_dxyz(ddf, gradient_dx)
             dfdy = gradient_dxyz(ddf, gradient_dy)
-            dfdz = gradient_dxyz(ddf, gradient_dz)
+            # dfdz = gradient_dxyz(ddf, gradient_dz)
+            dfdz = tf.zeros_like(dfdy)
 
             if self.apply_gradientNorm_weight_map:
-                tf.assert_equal(tf.reduce_all(gradient_weight_map == 0), False, message="Map must not all be zeros")
-                dfdx = tf.multiply(dfdx, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
-                dfdy = tf.multiply(dfdy, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
+                assert_op = tf.assert_equal(tf.reduce_all(gradient_weight_map == 0), False, message="Map must not all be zeros")
+                with tf.control_dependencies([assert_op]):
+                    dfdx = tf.multiply(dfdx, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
+                    dfdy = tf.multiply(dfdy, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
 
             if self.l1:
                 gradient_norms = tf.abs(dfdx) + tf.abs(dfdy) + tf.abs(dfdz)

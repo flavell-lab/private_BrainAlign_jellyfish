@@ -150,6 +150,7 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
         kernel_type: str = "rectangular",
         smooth_nr: float = EPS,
         smooth_dr: float = EPS,
+        floor: bool = False,
         name: str = "LocalNormalizedCrossCorrelation",
         **kwargs,
     ):
@@ -174,6 +175,7 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
         self.kernel_size = kernel_size
         self.smooth_nr = smooth_nr
         self.smooth_dr = smooth_dr
+        self.floor = floor
 
         # (kernel_size, )
         self.kernel = self.kernel_fn(kernel_size=self.kernel_size)
@@ -200,6 +202,17 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
         :param y_pred: shape = (batch, dim1, dim2, dim3, 1)
         :return: shape = (batch, dim1, dim2, dim3. 1)
         """
+
+        if self.floor:
+            floor = (tf.reduce_mean(y_true) + tf.reduce_mean(y_pred)) / 2
+            # floor = (tf.reduce_mean(y_true[..., 1, :]) + tf.reduce_mean(y_pred[..., 1, :])) / 2
+            # floor = 0.04
+            #### Doesn't work when only middle slice. Doesn't work when manually set
+            #### Working theory is flooring it reduces variance? Would pre-padding with min have same effect?
+            #### But it actually seems that regular bg is 0-2 so prob not that. This is really weird
+            y_true = tf.maximum(y_true, floor)
+            y_pred = tf.maximum(y_pred, floor)
+
 
         # t = y_true, p = y_pred
         # (batch, dim1, dim2, dim3, 1)
