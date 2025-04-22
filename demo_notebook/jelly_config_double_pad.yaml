@@ -17,19 +17,19 @@ dataset:
   - 3
   test:
     dir:
-    - "/home/brian/data4/brian/PBnJ/jelly_h5s/double_padded/vals-old"
+    - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/val"
     format: "h5"
     labeled: false
   train:
     dir:
       # - "/home/brian/data4/brian/PBnJ/smart_paired_h5s/double_padded/train"
-      - "/home/brian/data4/brian/PBnJ/jelly_h5s/DP_clipped/train_with_labs"
+      - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/train"
     format: "h5"
     labeled: true
   type: paired
   valid:
     dir:
-      - "/home/brian/data4/brian/PBnJ/jelly_h5s/double_padded/vals-old" 
+      - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/val" 
       # - "/home/brian/data4/brian/PBnJ/jelly_h5s/padded/train/firstDatasetsPaddedAllDims/val"
       # - "/home/brian/data4/brian/PBnJ/jelly_processed_data/mixed_lab_padded/train"
     format: "h5"
