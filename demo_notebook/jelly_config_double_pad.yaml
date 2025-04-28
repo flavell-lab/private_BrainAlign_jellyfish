@@ -1,35 +1,35 @@
 dataset:
   fixed_image_shape:
-  - 1080
-  - 1080
-  - 3
+  - 1024
+  - 1024
+  - 2
 
   moving_image_shape:
-  - 1080
-  - 1080
-  - 3
+  - 1024
+  - 1024
+  - 2
 
   moving_label_shape:
-  - 30
+  - 100
   - 3
   fixed_label_shape:
-  - 30
+  - 100
   - 3
   test:
     dir:
-    - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/val"
+    - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/padded/val"
     format: "h5"
     labeled: false
   train:
     dir:
       # - "/home/brian/data4/brian/PBnJ/smart_paired_h5s/double_padded/train"
-      - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/train"
+      - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/padded/train"
     format: "h5"
     labeled: true
   type: paired
   valid:
     dir:
-      - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/val" 
+      - "C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/padded/val" 
       # - "/home/brian/data4/brian/PBnJ/jelly_h5s/padded/train/firstDatasetsPaddedAllDims/val"
       # - "/home/brian/data4/brian/PBnJ/jelly_processed_data/mixed_lab_padded/train"
     format: "h5"
@@ -58,25 +58,25 @@ train:
     regularization:
       hybrid: true
       img_size:
-      - 1080
-      - 1080
-      - 3
+      - 1024
+      - 1024
+      - 2
       name: "hybrid"
       weight: 1
       hybrid_weight:
-        "axisdiff": 0.001
-        "gradient": 0.02
-        # "gradient": 0.0
-        "nonrigid": 0.02
-        # "nonrigid": 0.0
-        "diff": 0.005
+        axisdiff: 0.001
+        # "gradient": 0.02
+        gradient: 0.02
+        # "nonrigid": 0.02
+        nonrigid: 0.02
+        diff: 0.005
   method: "ddf"
   optimizer:
     # learning_rate: 0.001 # Was 0.0001
     learning_rate: 0.5 # Was 0.0001
     name: "Adam"
   preprocess:
-    batch_size: 4
+    batch_size: 2
     data_augmentation:
   #     name: "centroid_affine"
   #     moving_label_size:
@@ -86,6 +86,6 @@ train:
   #       - 30
   #       - 3
   #   num_parallel_calls: -1
-    shuffle_buffer_num_batch: 4
+    shuffle_buffer_num_batch: 2
   save_period: 1
   single_channel: True

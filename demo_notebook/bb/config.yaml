@@ -1,32 +1,32 @@
 dataset:
   fixed_image_shape:
-  - 1080
-  - 1080
-  - 3
+  - 1024
+  - 1024
+  - 2
   fixed_label_shape:
-  - 30
+  - 100
   - 3
   moving_image_shape:
-  - 1080
-  - 1080
-  - 3
+  - 1024
+  - 1024
+  - 2
   moving_label_shape:
-  - 30
+  - 100
   - 3
   test:
     dir:
-    - C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/val
+    - C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/padded/val
     format: h5
     labeled: false
   train:
     dir:
-    - C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/train
+    - C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/padded/train
     format: h5
     labeled: true
   type: paired
   valid:
     dir:
-    - C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/pad/val
+    - C:/Users/5950x/Desktop/JellyFishBAN/private_BrainAlign_jellyfish/demo_notebook/h5_files/cropped/padded/val
     format: h5
     labeled: true
     sample_label: all
@@ -56,9 +56,9 @@ train:
         gradient: 0.02
         nonrigid: 0.02
       img_size:
-      - 1080
-      - 1080
-      - 3
+      - 1024
+      - 1024
+      - 2
       name: hybrid
       weight: 1
   method: ddf
@@ -66,8 +66,8 @@ train:
     learning_rate: 0.5
     name: Adam
   preprocess:
-    batch_size: 4
+    batch_size: 2
     data_augmentation: null
-    shuffle_buffer_num_batch: 4
+    shuffle_buffer_num_batch: 2
   save_period: 1
   single_channel: true
