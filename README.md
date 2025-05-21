@@ -18,7 +18,7 @@ bioRxiv 2024.07.18.601886; doi: https://doi.org/10.1101/2024.07.18.601886
 - [usage](#usage)
 
 ## installation
-BrainAlignNet runs on two other packages: `DeepReg` and `euler_gpu`, which need to be installed separately.
+BrainAlignNet runs on two other packages: `DeepReg` and `euler_gpu`, which need to be installed separately - make sure to use the Flavell Lab specific installations.
 
 ### DeepReg
 
@@ -48,62 +48,85 @@ During training, BrainAlignNet is tasked with optimally registering the `t_movin
 
 The ROI images, `fixed_roi` and `moving_roi`, display each neuron on the RFP images with a unique color. Each label is a list of centriods of these neuronal R0Is.
 
-To prepare the data for training and validation, the preprocessing steps should accomplish the following tasks:
+To prepare the data for training and validation, the run the `sandwich_making.ipynb` script.
 
-* **crop images:** crop all RFP and ROI images to the same size: (284, 120, 64)
-* **Euler registration:** perform Euler registration on both RFP and ROI images, using parameters that optimize the registration of RFP images.
-* **create centroids:** identify and extract the centroids of all neurons from the ROI images.
+## TODO: Docs on Sandwich
 
-#### cropping & Euler registration
-Both image cropping and Euler registration are performed on our raw data in `.nrrd` format, which is available upon request. The processed images for training and validaton are freely and publicly available on [DropBox](https://www.dropbox.com/scl/fo/ealblchspq427pfmhtg7h/ANRojNDjEY018KFywtEZ8-k/BrainAlignNet?dl=0&rlkey=1e6tseyuwd04rbj7wmn2n6ij7&subfolder_nav_tracking=1).
 
-The following code block processes RFP images and creates a  `resources` folder, where it writes two `.json` files: `center_of_mass.json` and `euler_parameters.json`. These files store the parameters for cropping and registering the ROI images.
-
-Additionally, the code outputs the processed RFP images from registration problems specified in `problem_file`. The outputs are `fixed_images.h5` and `moving_images.h5`, which are saved under the specified `save_directory`.
-
-```python
-from euler_register import EulerRegistrationProcessor
-
-target_image_shape = (284, 120, 64)
-save_directory = "/home/user/demo_data/euler_registered_RFP"
-problem_file = "/home/user/demo_data/registration_problems.json"
-
-processor = EulerRegistrationProcessor(
-    target_image_shape,
-    save_directory,
-    problem_file
-)
-processor.process_datasets()
-```
-Then, the same Euler parameters for registering RFP images are applied to register their corresponding ROI images. The outputs are `fixed_rois.h5` and `moving_rois.h5` under the specified `save_directory`.
-
-```python
-from warp_roi import generate_rois
-
-device_name = "cuda:2"
-target_image_shape = (284, 120, 64)
-problem_file = "/home/user/BrainAlignNet/demo_data/registration_problems_roi.json"
-save_directory = "/home/user//BrainAlignNet/demo_data/euler_registered_roi"
-
-generate_rois(
-    device_name,
-    target_image_shape,
-    problem_file,
-    save_directory,
-    True)
-```
-#### create centroids
-
-The neuronal centroids are computed after `fixed_rois.h5` and `moving_rois.h5` are created. To compute them, simply specify the path to the ROI images.
-
-```python
-from label_centroids import CentroidLabel
-
-dataset_path = "/home/user/BrainAlignNet/demo_data/euler_registered_roi"
-centroid_labeler = CentroidLabel(dataset_path)
-centroid_labeler.create_all_labels()
-```
 
 ## usage
 
-*A demonstration of training and applying BrainAlignNet on unseen data is available [here](https://github.com/flavell-lab/BrainAlignNet/blob/main/demo_notebook/demo_network.ipynb)*.
+*The original demonstration of training and applying BrainAlignNet on unseen data is available [here](https://github.com/flavell-lab/BrainAlignNet/blob/main/demo_notebook/demo_network.ipynb)*.
+
+### RFa Inference Pipeline
+
+This is everything I did to align the most recent video I ran. This process assumes that you have already trained a dataset-specific or generalized model, and just runs through the inference pipeline. As of 5/20/25,this entire pipline has been ran and validated exclusively using the following steps.
+
+1. Chunk a video into sections for easier loading and processing. I used 2000 frames.  
+   1. I have a ImageJ macro for this if it would be helpful  
+2. Open **eulerGPU-rigalign RFa.ipynb**[^1]  
+   1. Update the `red_channel` and `BATCH_SIZE` variables in the first cell to match your setup. The “red\_channel” doesn’t have to be literally red, but is the channel that is constant that we want to use for alignment. Note it is zero-indexed, so the first channel is channel 0\.  
+   2. Update the `tiff_folder` path in the second cell to match the location of your chunked video. Double check the files it prints out are correct and in the correct order.  
+   3. Run All Cells \- (this can take several hours)  
+   4. Evaluate the output. If it’s poorly aligned, try to figure out which frame caused it to get out of sync. If there’s a lot of movement on that frame, increase the search range values or uncommenting the expanded search snippet in the main cell  
+3. Open **alignVideoSecondChannelOneTIF-RFa.ipynb**  
+   1. Update the batch size to account for what you can fit on your GPU (although inference is less memory-hungry, it might be best to just use what you used in training)  
+   2. Update `tiff_folder` in the second cell to match where your rigid-aligned video is. This should be the same as the folder in part 2b. Using the third cell, double check the files are just the files created from step 2  
+   3. Update `checkpoint_path` to match your best checkpoint from training. The path should end with “ckpt-000” where 000 is whatever epoch was best. Don’t include an extension  
+   4. Set `max_frames` to the size of your chunk (e.g. 2000\)  
+   5. Check that `side_len` matches your crop size. If you have non-square images, then you’ll have to modify my code. You might also want to check beforehand that none of the zeros added during rigid-alignment are included in the crop, since that will mess up the scaling. If that’s the case and you can’t re-crop, try subtracting the median and then taking the max of that array and 0\.  
+   6. Make sure `red_chan` is correct as mentioned previously  
+   7. If your image is double padded in the default way, set `padding` to 
+
+      `[[0,0],[0,0],[0,0],[1,1]]`
+
+      Else, if it’s single padded in the default way, set it to 
+
+      `[[0,0],[0,0],[0,0],[1,0]]`
+
+      And set `z_depth` to 2 or 3 depending on padding
+
+   8. `log_dir` needs to be a valid path, but don’t worry about it too much  
+   9. Run all cells (depending on your system’s read-write speed and load, I’ve had this take anywhere from 20min to 3+ hrs)
+
+### non-RFa Inference Pipeline
+
+This process assumes that you have already trained a dataset-specific or generalized model, and just runs through the inference pipeline. I haven’t ran a video through this version of the pipeline, so there might still be bugs, but they will be very quick to solve
+
+1. Chunk a video into sections for easier loading and processing. I used 2000 frames.  
+2. Open **eulerGPU-channel.ipynb**  
+   1. Update `tiff_folder` to match your dataset[^2]  
+   2. Adjust `batch_size` to be the largest value that will fit on your GPU. When trying to figure this out, try powers of 2, since they’ll be very slightly faster than other numbers.   
+   3. Depending on how large of a batch size you can fit, set `num_frames` to either the same value as `batch_size` or a multiple of it. (e.g. if you have a `batch_size` of 32, you might want to set num\_frames to 64, although to be honest, given that the transformation between the frames should be consistent, there shouldn’t be a large need for many frames.)  
+   4. Make sure the numbers for `red_channel` and `green_channel` are correct. (remember they’re 0-indexed)  
+   5. Check the range of values in your dataset and update `cutoff` as necessary. It should be a value that is slightly higher than the highest green channel value in most of the neurons. (e.g. if you have a dataset with the brightest frame’s values mostly between 200-230 then set it to 250). This value really shouldn’t matter unless some dataset randomly has a much higher or lower baseline, and it either cuts off detail or allows a massive outlier to stay in  
+   6. Run all. This shouldn’t take long, although it’s entirely proportional to what was specified for `num_frames`. Check the the files selected are the correct ones  
+   7. Manually check results. If you thought that the dataset had really bad channel misalignment before and it wasn’t fixed, you might want to expand the search range by changing the limits on `ALIGN_XY_RANGE` and `ALIGN_TH_RANGE`  in the 7th cell. You’ll likely want to increase the density to account for the wider range, so remember this is a cubically increasing search space. Basically if you can easily see that it’s out of alignment, you might want to boost the range since right now it’s more focused on sub-pixel stuff.  
+3. Open **eulerGPU-rigalign.ipynb**  
+   1. Update the `red_channel` and `BATCH_SIZE` variables in the first cell to match your setup. The “red\_channel” doesn’t have to be literally red, but is the channel that is constant that we want to use for alignment. Note it is zero-indexed, so the first channel is channel 0\.  
+   2. Update the `tiff_folder` path in the second cell to match the location of your chunked video. Double check the files it prints out are correct and in the correct order.  
+   3. Run All Cells \- (this can take several hours)  
+   4. Evaluate the output. If it’s poorly aligned, try to figure out which frame caused it to get out of sync. If there’s a lot of movement on that frame, increase the search range values or uncommenting the expanded search snippet in the main cell  
+4. Open **alignVideoSecondChannelOneTIF.ipynb**  
+   1. Update `batch_size` to account for what you can fit on your GPU (although inference is less memory-hungry, it might be best to just use what you used in training)  
+   2. Update `tiff_folder` in the second cell to match where your rigid-aligned video is. This should be the same as the folder in part 3b. After running this cell,, double check the files match the files created from step 3\. If you want the output from this cell saved somewhere else, you can modify `out_folder` although I’ve found it easier to just keep everything in the same folder  
+   3. Update `checkpoint_path` to match your best checkpoint from training. The path should end with “ckpt-000” where 000 is whatever epoch was best. Don’t include an extension  
+   4. Set `max_frames` to the size of your chunk (e.g. 2000\)  
+   5. Make sure `red_chan` is correct as mentioned previously (0 \= 1st channel, 1 \= 2nd, etc.)  
+   6. Check that `side_len` matches your crop size. If you have non-square images, then you’ll have to modify my code. You might also want to check beforehand that none of the zeros added during rigid-alignment are included in the crop, since that will mess up the scaling. If that’s the case and you can’t re-crop, try subtracting the median and then taking the max of that array and 0\.  
+   7. If your image is double padded in the default way, set `padding` to 
+
+      `[[0,0],[0,0],[0,0],[1,1]]`
+
+      Else, if it’s single padded in the default way, set it to 
+
+      `[[0,0],[0,0],[0,0],[1,0]]`
+
+      And set `z_depth` to 2 or 3 depending on padding
+
+   8. `log_dir` needs to be a valid path, but don’t worry about it too much  
+   9. Run all cells (depending on your system’s read-write speed and load, I’ve had this take anywhere from 20min to 3+ hrs)
+
+[^1]:  The difference between the RFa version and the non-RFa version is that the RFa version includes my naive segmentation implementation, which doesn’t work on non-RFa strains. 
+
+[^2]:  The script is currently set up to just run on the first dataset in the list. You can manually make sure the generated transformation are consistent across the files or I can write that in, I’ve just found that loading the files is a pretty significant part of the time and never noticed any big changes in the results it generated
