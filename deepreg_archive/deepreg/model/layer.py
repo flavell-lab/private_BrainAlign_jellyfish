@@ -260,7 +260,6 @@ class Warping(tfkl.Layer):
         :param kwargs: additional arguments.
         :return: shape = (batch, f_dim1, f_dim2, f_dim3)
         """
-        ###### Ok, so here the ddf is only negative but the image is still chillin
         ddf, image = inputs
         return layer_util.resample(vol=image, loc=self.grid_ref + ddf, batch_size=self.batch_size, interpolation=self.interpolation)
 

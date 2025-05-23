@@ -332,7 +332,7 @@ class RandomAffineTransform3D(RandomTransformation3D):
         :return: a tuple of tensors, each has shape = (batch, 4, 3)
         """
         theta = gen_rand_affine_transform(
-            batch_size=self.batch_size * 2, scale=self.scale
+            batch_size=self.batch_size * 2, scale=self.scale, is2D = True
         )
         return theta[: self.batch_size], theta[self.batch_size :]
 
@@ -348,8 +348,85 @@ class RandomAffineTransform3D(RandomTransformation3D):
         :param params: shape = (batch, 4, 3)
         :return: shape = (batch, dim1, dim2, dim3)
         """
+        if len(image.shape) == 3:
+            return image #### TODO: Maybe just retrieve warp_grid loc?
         return resample(vol=image, loc=warp_grid(grid_ref, params), batch_size=batch_size)
 
+
+@REGISTRY.register_data_augmentation(name="rigid")
+class RandomLinearTransform2D(RandomTransformation3D):
+    """Apply random affine transformation to moving/fixed images separately."""
+
+    def __init__(
+        self,
+        moving_image_size: Tuple[int, ...],
+        fixed_image_size: Tuple[int, ...],
+        batch_size: int,
+        scale: float = 0.1,
+        name: str = "RandomLinearTransform2D",
+        **kwargs,
+    ):
+        """
+        Init.
+
+        :param moving_image_size: (m_dim1, m_dim2, m_dim3)
+        :param fixed_image_size: (f_dim1, f_dim2, f_dim3)
+        :param batch_size: total number of samples consumed per step, over all devices.
+        :param scale: a positive float controlling the scale of transformation
+        :param name: name of the layer
+        :param kwargs: additional arguments
+        """
+        super().__init__(
+            moving_image_size=moving_image_size,
+            fixed_image_size=fixed_image_size,
+            batch_size=batch_size,
+            name=name,
+            **kwargs,
+        )
+        self.scale = scale
+
+    def gen_transform_params(self) -> Tuple[tf.Tensor, tf.Tensor]:
+        """
+        Function that generates the random 2D transformation parameters
+        for a batch of data for moving and fixed image.
+
+        :return: a tuple of tensors, each has shape = (batch, 2)
+        """
+        offset = tf.random.uniform([self.batch_size, 2, 2], minval=0, maxval=self.scale)
+        offset = tf.cast(tf.multiply(offset, max(self.moving_image_size)),dtype=tf.int32)
+        return offset, tf.zeros_like(offset)
+
+    @staticmethod
+    def transform(
+        image: tf.Tensor, grid_ref: tf.Tensor, params: tf.Tensor, batch_size: int
+    ) -> tf.Tensor:
+        """
+        Transforms the reference grid and then resample the image.
+
+        :param image: shape = (batch, dim1, dim2, dim3)
+        :param grid_ref: shape = (dim1, dim2, dim3, 3)
+        :param params: shape = (batch, 2)
+        :return: shape = (batch, dim1, dim2, dim3)
+        """
+        if len(image.shape) == 3:
+            return image #### TODO: Maybe just retrieve warp_grid loc?
+        
+        # offsets = tf.Tensor([[[x, -x] for x in xs] for xs in params])
+        # offsets = tf.repeat(params[...,np.newaxis], 2, axis=-1)
+        # offsets = tf.multiply(offsets, tf.concat([tf.ones_like(offsets[...,0]), tf.scalar_mul(-1, tf.ones_like(offsets[...,1]))], axis = -1))
+        # print(offsets)
+        # offsets = tf.print(offsets)
+        # padding = tf.maximum(offsets, 0)
+
+        # padding = 
+
+        # print(padding.shape)
+        # # padding = tf.print(padding)
+        
+        # return tf.pad(image, padding, constant_values=tf.reduce_min(image))
+        padding = tf.concat([tf.zeros_like(params[:,0,:]), params])
+        padded = tf.pad(image, padding, constant_values=tf.reduce_min(image))
+        return padded[:,params[:,::-1]]
 
 @REGISTRY.register_data_augmentation(name="ddf")
 class RandomDDFTransform3D(RandomTransformation3D):
@@ -500,7 +577,7 @@ def resize_inputs(
 
 
 def gen_rand_affine_transform(
-    batch_size: int, scale: float, seed: Optional[int] = None
+    batch_size: int, scale: float, seed: Optional[int] = None, is2D: bool = False
 ) -> tf.Tensor:
     """
     Function that generates a random 3D transformation parameters for a batch of data.
@@ -612,6 +689,9 @@ def gen_rand_affine_transform(
     # Generate random noise
     noise = tf.random.uniform([batch_size, 4, 3], minval=1 - scale, maxval=1)
 
+    if is2D:
+        noise = tf.maximum(noise, tf.concat([tf.zeros(noise[...,:2].shape), tf.ones(noise[...,2].shape + (1,))], axis=-1)) #### BRIAN: z mask for affine
+
     # Define old points (cube corners)
     old = tf.tile(
         tf.constant([[[-1, -1, -1, 1], [-1, -1, 1, 1], [-1, 1, -1, 1], [1, -1, -1, 1]]], dtype=tf.float32),
@@ -660,4 +740,87 @@ def gen_rand_ddf(
     return high_res_field
 
 
-# TODO BRIAN: Rotations
+def rot90_batch(images, k_values):
+    return tf.map_fn(
+        lambda x: tf.image.rot90(x[0], k=x[1]),
+        (images, k_values),
+        dtype=images.dtype
+    )
+    
+
+
+@REGISTRY.register_data_augmentation(name="jelly")
+class AffineAndReorientTransform2D(RandomTransformation3D):
+    """Apply random affine transformation to moving/fixed images separately while rotating them in conjuction. Does NOT support labels."""
+
+    def __init__(
+        self,
+        moving_image_size: Tuple[int, ...],
+        fixed_image_size: Tuple[int, ...],
+        batch_size: int,
+        scale: float = 0.1,
+        reorient_rot: bool = True,
+        name: str = "RandomTransform2D",
+        **kwargs,
+    ):
+        """
+        Init.
+
+        :param moving_image_size: (m_dim1, m_dim2, m_dim3)
+        :param fixed_image_size: (f_dim1, f_dim2, f_dim3)
+        :param batch_size: total number of samples consumed per step, over all devices.
+        :param scale: a positive float controlling the scale of transformation
+        :param name: name of the layer
+        :param kwargs: additional arguments
+        """
+        super().__init__(
+            moving_image_size=moving_image_size,
+            fixed_image_size=fixed_image_size,
+            batch_size=batch_size,
+            name=name,
+            **kwargs,
+        )
+        self.scale = scale
+        self.reorient_rot = reorient_rot
+
+    def gen_transform_params(self) -> Tuple[tf.Tensor, tf.Tensor]:
+        """
+        Function that generates the random 2D transformation parameters
+        for a batch of data for moving and fixed image.
+
+        :return: a tuple of tensors, each has shape = (batch, 2)
+        """
+        # Affine transformation - should account for translation, rotation, and warping. Also slight scaling?
+        theta = gen_rand_affine_transform(
+            batch_size=self.batch_size * 2, scale=self.scale, is2D = True
+        )
+    
+        # 90deg Reorientations
+        if self.reorient_rot:
+            rots = tf.random.uniform([self.batch_size], minval=0, maxval=4, dtype=tf.int32)
+        else:
+            rots = tf.fill([self.batch_size], 0, dtype=tf.int32)
+
+        
+        return (theta[: self.batch_size], rots), (theta[self.batch_size :], rots)
+    
+
+    @staticmethod
+    def transform(
+        image: tf.Tensor, grid_ref: tf.Tensor, params: tf.Tensor, batch_size: int
+    ) -> tf.Tensor:
+        """
+        Transforms the reference grid and then resample the image.
+
+        :param image: shape = (batch, dim1, dim2, dim3)
+        :param grid_ref: shape = (dim1, dim2, dim3, 3)
+        :param params: shape = (batch, 4, 3)
+        :return: shape = (batch, dim1, dim2, dim3)
+        """
+        warp_params, rots = params
+        if len(image.shape) == 3:
+            return image #### TODO: Maybe just retrieve warp_grid loc?
+        return rot90_batch(resample(vol=image, loc=warp_grid(grid_ref, warp_params), batch_size=batch_size), rots)
+        
+
+        

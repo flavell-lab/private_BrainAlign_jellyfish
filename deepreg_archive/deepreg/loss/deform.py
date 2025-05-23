@@ -380,6 +380,7 @@ class HybridNorm(tf.keras.layers.Layer):
             dfdz = tf.zeros_like(dfdy)
 
             if self.apply_gradientNorm_weight_map:
+                # print(self.apply_gradientNorm_weight_map)
                 assert_op = tf.assert_equal(tf.reduce_all(gradient_weight_map == 0), False, message="Map must not all be zeros")
                 with tf.control_dependencies([assert_op]):
                     dfdx = tf.multiply(dfdx, tf.expand_dims(gradient_weight_map[:, 1:-1, 1:-1, ...], axis=-1))
