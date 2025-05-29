@@ -150,6 +150,7 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
         kernel_type: str = "rectangular",
         smooth_nr: float = EPS,
         smooth_dr: float = EPS,
+        floor: bool = False,
         name: str = "LocalNormalizedCrossCorrelation",
         **kwargs,
     ):
@@ -174,6 +175,7 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
         self.kernel_size = kernel_size
         self.smooth_nr = smooth_nr
         self.smooth_dr = smooth_dr
+        self.floor = floor
 
         # (kernel_size, )
         self.kernel = self.kernel_fn(kernel_size=self.kernel_size)
@@ -200,6 +202,11 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
         :param y_pred: shape = (batch, dim1, dim2, dim3, 1)
         :return: shape = (batch, dim1, dim2, dim3. 1)
         """
+
+        if self.floor:
+            floor = (tf.reduce_mean(y_true) + tf.reduce_mean(y_pred)) / 2
+            y_true = tf.maximum(y_true, floor)
+            y_pred = tf.maximum(y_pred, floor)
 
         # t = y_true, p = y_pred
         # (batch, dim1, dim2, dim3, 1)
@@ -231,15 +238,6 @@ class LocalNormalizedCrossCorrelation(tf.keras.losses.Loss):
 
         # (E[tp] - E[p] * E[t]) ** 2 / V[t] / V[p]
         ncc = (cross * cross) / (t_var * p_var + self.smooth_dr)
-
-        # mask = tf.cast(tf.math.greater(y_true, tf.reduce_mean(y_true)), tf.float32) # BRIAN - Orig mask
-
-        # mask = tf.logical_or(tf.math.greater(y_true, tf.reduce_mean(y_true)), tf.math.greater(y_pred, tf.reduce_mean(y_pred)))
-        # mask = tf.cast(mask, tf.float32) # BRIAN
-
-        # mask = tf.keras.backend.print_tensor(mask)
-
-        # ncc = tf.multiply(ncc, mask)
 
 
         return ncc

@@ -296,7 +296,6 @@ def resample(
     loc_ceil = tf.math.ceil(loc)
     loc_floor = loc_ceil - 1
     # (batch, *loc_shape, n, 3)
-    #### LOC FLOOR is too big? Idk man. Shouldn't be possible that it's exactly the same as loc, right?
     clipped = tf.stack([loc, loc_floor, loc_ceil], axis=-1)
     clip_value_max = tf.cast(vol_shape, dtype=clipped.dtype) - 1  # (n,)
     clipped_shape = [1] * (len(loc_shape) + 1) + [dim_vol, 1]
@@ -316,7 +315,7 @@ def resample(
     for dim in range(dim_vol):
         # shape = (batch, *loc_shape)
         c_clipped = clipped[..., dim, 0]
-        c_floor = clipped[..., dim, 1] #### THIS ONE IS TOO HIGH?
+        c_floor = clipped[..., dim, 1]
         c_ceil = clipped[..., dim, 2]
         w_floor = c_ceil - c_clipped  # shape = (batch, *loc_shape)
         w_ceil = c_clipped - c_floor if zero_boundary else 1 - w_floor
@@ -355,11 +354,9 @@ def resample(
         for c in corner_indices  # c is list of len n
     ]  # each tensor has shape (batch, *loc_shape) or (batch, *loc_shape, ch)
 
-    #### Not good here?
     sampled = pyramid_combination(
         values=corner_values, weight_floor=weight_floor, weight_ceil=weight_ceil, interpolation=interpolation
     )
-    #### OK so broken by here. Sampled is the pred_image
     return sampled
 
 
