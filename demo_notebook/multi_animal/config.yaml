@@ -9,29 +9,29 @@ dataset:
   - 1024
   - 3
   fixed_label_shape:
-  - 30
+  - 100
   - 3
   moving_image_shape:
   - 1024
   - 1024
   - 3
   moving_label_shape:
-  - 30
+  - 100
   - 3
   test:
     dir:
-    - /home/brian/data4/brian/PBnJ/jelly_h5s/RFamide/unlab_big/d_pad/cropped/val
+    - /home/brian/data4/brian/PBnJ/jelly_h5s/RFamide/mixed_datasets/cropped/padded/val
     format: h5
     labeled: false
   train:
     dir:
-    - /home/brian/data4/brian/PBnJ/jelly_h5s/RFamide/unlab_big/d_pad/cropped/train
+    - /home/brian/data4/brian/PBnJ/jelly_h5s/RFamide/mixed_datasets/cropped/padded/train
     format: h5
     labeled: true
   type: paired
   valid:
     dir:
-    - /home/brian/data4/brian/PBnJ/jelly_h5s/RFamide/unlab_big/d_pad/cropped/val
+    - /home/brian/data4/brian/PBnJ/jelly_h5s/RFamide/mixed_datasets/cropped/padded/val
     format: h5
     labeled: true
     sample_label: all
@@ -44,10 +44,10 @@ train:
     - 3
     name: local
     num_channel_initial: 16
-  epochs: 1000
+  epochs: 500
   loss:
     image:
-      kernel_size: 64
+      kernel_size: 16
       name: lncc
       weight: 1000
     label:
@@ -57,8 +57,8 @@ train:
       hybrid: true
       hybrid_weight:
         axisdiff: 0.001
-        diff: 0.001
-        gradient: 0.002
+        diff: 0.0001
+        gradient: 0.004
         nonrigid: 0.001
       img_size:
       - 1024
@@ -82,7 +82,8 @@ train:
       - 1024
       - 1024
       - 3
-      name: affine
+      name: jelly
+      reorient_rot: true
       scale: 0.005
     shuffle_buffer_num_batch: 4
   save_period: 1
