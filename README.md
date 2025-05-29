@@ -22,7 +22,7 @@ BrainAlignNet runs on two other packages: `DeepReg` and `euler_gpu`, which need 
 
 ### DeepReg
 
-`DeepReg` is a deep learning toolkit for image registration. BrainAlignNet uses a [custom version of `DeepReg`](https://github.com/flavell-lab/DeepReg) with a novel network objective.
+`DeepReg` is a deep learning toolkit for image registration. The standard [BrainAlignNet](https://github.com/flavell-lab/BrainAlignNet) (for C. elegans) uses a [custom version of `DeepReg`](https://github.com/flavell-lab/DeepReg) with a novel network objective. This version (modified for jellyfish) uses a **different custom version** found [here](https://github.com/flavell-lab/deepreg_Jellyfish/tree/main)
 
 Clone or download our custom DeepReg; then run `pip install .` at its root directory to install the package.
 
@@ -34,25 +34,7 @@ Clone or download [`euler_gpu`](https://github.com/flavell-lab/euler_gpu) and ru
 
 ## data preparation
 
-*For a demonstration of our data preprocessing pipeline, check out our [demo notebook](https://github.com/flavell-lab/BrainAlignNet/blob/main/demo_notebook/demo_pipeline.ipynb).*
-
-
-The inputs to BrainAlignNet are images with their centroid labels. Each registration problem in the training and validation set is composed of six items:
-* `fixed_image` & `moving_image`
-* `fixed_roi` & `moving_roi`
-* `fixed_label` & `moving_label`
-
-These datasets for all registration problems are written in `.h5` files. Each `.h5` file contains multiple keys. Each key, formatted as `<t_moving>to<t_fixed>`, represents a registration problem.
-
-During training, BrainAlignNet is tasked with optimally registering the `t_moving` frame to the `t_fixed` frame, where `t_moving` and `t_fixed` are two different timepoints from a single calcium imaging recording.
-
-The ROI images, `fixed_roi` and `moving_roi`, display each neuron on the RFP images with a unique color. Each label is a list of centriods of these neuronal R0Is.
-
-To prepare the data for training and validation, the run the `sandwich_making.ipynb` script.
-
-## TODO: Docs on Sandwich
-
-
+`sandwich_making,ipynb` handles data preparation by automatically padding (hence sandwich) and formatting provided tif files. The standard use case is `raw = True` where the script will scrape from a dictionary of directories and tif files and create training data consisting of a random sampling of frames aligned to the first frame of each dataset's provided files. Everything is built to handle lists of file because it is often more convienent to have a dataset be chunked for faster file I/O, however single files should be handled perfectly well. After the script runs, there will be subfolders of cropped, padded, and potentially augmented files. There will be `val` and `train` folders in the deepest of these nested folders and those are the paths which should be provided in the config.yaml used for training. 
 
 ## usage
 
