@@ -34,7 +34,9 @@ Clone or download [`euler_gpu`](https://github.com/flavell-lab/euler_gpu) and ru
 
 ## data preparation
 
-`sandwich_making,ipynb` handles data preparation by automatically padding (hence sandwich) and formatting provided tif files. The standard use case is `raw = True` where the script will scrape from a dictionary of directories and tif files and create training data consisting of a random sampling of frames aligned to the first frame of each dataset's provided files. Everything is built to handle lists of file because it is often more convienent to have a dataset be chunked for faster file I/O, however single files should be handled perfectly well. After the script runs, there will be subfolders of cropped, padded, and potentially augmented files. There will be `val` and `train` folders in the deepest of these nested folders and those are the paths which should be provided in the config.yaml used for training. 
+`sandwich_making.ipynb` handles data preparation by automatically padding (hence sandwich) and formatting provided tif files. The standard use case is `raw = True` where the script will scrape from a dictionary of directories and tif files and create training data consisting of a random sampling of frames aligned to the first frame of each dataset's provided files. Everything is built to handle lists of file because it is often more convienent to have a dataset be chunked for faster file I/O, however single files should be handled perfectly well. After the script runs, there will be subfolders of cropped, padded, and potentially augmented files. There will be `val` and `train` folders in the deepest of these nested folders and those are the paths which should be provided in the config.yaml used for training. 
+
+Prepared h5 files and raw videos can both be found on our [DropBox](https://www.dropbox.com/scl/fo/ealblchspq427pfmhtg7h/ACJ3VfEStFvorJ8Mq4srVlk/BrainAlignNet_Jellyfish?rlkey=1e6tseyuwd04rbj7wmn2n6ij7&subfolder_nav_tracking=1&st=7kg6zt9x&dl=0)
 
 ## usage
 
